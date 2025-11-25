@@ -321,6 +321,12 @@ void loop(void) {
   if(check_bms() && car_state != 0){
     shutdown();
   }
+// print
+
+  lcd_printf(min_cell_voltage, max_cell_voltage,max_cell_temperature);
+
+
+  lcd_printf(torques[0], torques[1], torques[2], torques[3]);
 
 
 
