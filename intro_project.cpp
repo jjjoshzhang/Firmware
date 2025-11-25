@@ -132,6 +132,9 @@ static const uint8_t AIR_MINUS  = 10;
 // car state 
 static int car_state = 0;  // 0 = LV, 1 = TS, 2 = RTD
 
+// 4 torques 
+
+static float torques[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 // say u have 12 cells
 static const int NUM_CELLS = 12;  
@@ -233,6 +236,25 @@ static void shutdown(){
 }
 
 
+static void torque_task(void *pvParameters) {
+// Remember current RTOS time so we can iterate 1ms per loop
+  TickType_t last_wake = xTaskGetTickCount();
+
+  while (1) {
+    if (car_state == 2) {
+      float current = 10;
+      float wheelspeeds[4] = {100, 100, 100, 100};
+      float steering_angle = 0.0;
+
+      calculate_torque_cmd(torques, current, wheelspeeds, steering_angle);
+      // later: can_send(...) based on torques
+    }
+
+    vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(1)); // 1 ms period
+  }
+}
+
+
 
 // run first and once 
 
@@ -260,6 +282,9 @@ void setup(void) {
   bms_init(MOSI, MISO, SCK, BMS_CS);
   // baudrate -> communication speed(bps), standard bps for can bus is 500k
   can_init(CAN_RX , CAN_TX , 500000);
+
+  // function, name, stack size, parameter passed to the task, priority, store the task handle("ID")
+  xTaskCreate(torque_task, "torque_task", 256, NULL, 2, NULL);
 
   lcd_printf("State: LV\n");
 
@@ -296,6 +321,8 @@ void loop(void) {
   if(check_bms() && car_state != 0){
     shutdown();
   }
+
+
 
 // so screen dont spam so quick
   vTaskDelay(pdMS_TO_TICKS(100));
